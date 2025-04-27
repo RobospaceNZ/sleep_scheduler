@@ -75,7 +75,7 @@ Under projects, add:
 ```
     - name: sleep_scheduler
       remote: sleep_scheduler
-      revision: V1.0.1
+      revision: V1.0.2
       path: modules/lib/sleep_scheduler
 ```
 
