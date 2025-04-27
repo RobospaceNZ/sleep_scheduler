@@ -1,15 +1,32 @@
-#ifndef CUSTOM_SLEEP_SCHEDULER_H
-#define CUSTOM_SLEEP_SCHEDULER_H
+/*
+ * sleep_scheduler.c
+ *
+ * Copyright (c) 2025 Hubert Jetschko
+ *
+ * This file is licensed under the MIT License.
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+ * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
 
-/* To use this scheduler, you fir st need to have the following defines and then include this h file:
-#define SCHEDULER_FIRST_TIMEOUT                 0
-#define SCHEDULER_SECOND_TIMEOUT                1
-...
-#define SCHEDULER_COUNT                         6       // Number of scheduled events, must be the last one and one more than the last timeout
-#include "sleep_scheduler.h"
-*/
+#ifndef ZEPHYR_SLEEP_SCHEDULER_H
+#define ZEPHYR_SLEEP_SCHEDULER_H
 
-#define SCHEDULER_TIME_SLIPPAGE                 3      // ms, make sure it is past the time scheduled to avoid unnecessary wakeups
+#define SCHEDULER_TIME_SLIPPAGE                 1      // ms, make sure it is past the time scheduled to avoid unnecessary wakeups
 
 static int64_t scheduler_times[SCHEDULER_COUNT];
 
@@ -63,4 +80,4 @@ inline static k_timeout_t calculate_sleep_time(void) {
     return K_FOREVER;   // No events scheduled
 }
 
-#endif // CUSTOM_SLEEP_SCHEDULER_H
+#endif // ZEPHYR_SLEEP_SCHEDULER_H
