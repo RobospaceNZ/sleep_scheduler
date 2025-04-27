@@ -87,3 +87,11 @@ SET ZEPHYR_SDK_INSTALL_DIR=C:\ncs\toolchains\b620d30767\opt\zephyr-sdk
 SET PATH=C:\ncs\toolchains\b620d30767;C:\ncs\toolchains\b620d30767\mingw64\bin;C:\ncs\toolchains\b620d30767\bin;C:\ncs\toolchains\b620d30767\opt\bin;C:\ncs\toolchains\b620d30767\opt\bin\Scripts;C:\ncs\toolchains\b620d30767\nanopb\generator-bin;C:\ncs\toolchains\b620d30767\opt\zephyr-sdk\arm-zephyr-eabi\bin;%PATH%
 west update
 ```
+
+The sleep scheduler code will be located at:<br>
+C:\ncs\v2.9.0\modules\lib\sleep_scheduler
+
+Add the following to your CMakeLists.txt file:
+```
+zephyr_include_directories($ENV{ZEPHYR_BASE}/../modules/lib/sleep_scheduler)
+```
