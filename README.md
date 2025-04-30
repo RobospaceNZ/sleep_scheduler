@@ -58,9 +58,9 @@ The semaphore allows other parts of your code to immediately wake up your thread
 
 ## Import into Zephyr
 
-This code can be cloned as part of the user's code, but can also be cloned into your Zephyr library. The advantage of this is that if it is cloned into Zephyr once it is available to all our Zephyr projects.
+This code can be cloned as part of the user's code, but can also be cloned into your Zephyr library. The advantage of this is, if it is cloned into Zephyr once, it will be available to all your Zephyr projects.
 
-For the examples below, we are assuming NCS 2.9.0. Please adjust to your version.
+For the examples below, we are assuming Nordic NCS 2.9.0. Please adjust to your version.
 
 If you are using Nordic's NCS, open west.yml located at:<br>
 C:\ncs\v2.9.0\nrf\west.yml
@@ -75,16 +75,13 @@ Under projects, add:
 ```
     - name: sleep_scheduler
       remote: sleep_scheduler
-      revision: V1.0.2
+      revision: V1.0.3
       path: modules/lib/sleep_scheduler
 ```
 
-Open command prompt in C:\ncs\v2.9.0. Remember to update b620d30767 and 2.9.0 if you use a different NCS. Run the following:
+Open command prompt in C:\ncs\v2.9.0. Remember to update b620d30767 if you use a different NCS (See C:\ncs\toolchains\toolchains.json for the version codes). Run the following:
 ```
-SET PYTHONPATH=C:\ncs\toolchains\b620d30767\opt\bin;C:\ncs\toolchains\b620d30767\opt\bin\Lib;C:\ncs\toolchains\b620d30767\opt\bin\Lib\site-packages
-SET ZEPHYR_BASE=C:\ncs\v2.9.0\zephyr
-SET ZEPHYR_SDK_INSTALL_DIR=C:\ncs\toolchains\b620d30767\opt\zephyr-sdk
-SET PATH=C:\ncs\toolchains\b620d30767;C:\ncs\toolchains\b620d30767\mingw64\bin;C:\ncs\toolchains\b620d30767\bin;C:\ncs\toolchains\b620d30767\opt\bin;C:\ncs\toolchains\b620d30767\opt\bin\Scripts;C:\ncs\toolchains\b620d30767\nanopb\generator-bin;C:\ncs\toolchains\b620d30767\opt\zephyr-sdk\arm-zephyr-eabi\bin;%PATH%
+SET PATH=C:\ncs\toolchains\b620d30767\opt\bin;C:\ncs\toolchains\b620d30767\opt\bin\Scripts;%PATH%
 west update
 ```
 
