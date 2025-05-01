@@ -80,4 +80,32 @@ inline static k_timeout_t calculate_sleep_time(void) {
     return K_FOREVER;   // No events scheduled
 }
 
+// If there are items in the message queue then don't sleep
+inline static k_timeout_t calculate_sleep_time_msgq(struct k_msgq * msgq) {
+    int64_t now = k_uptime_get();
+    int64_t next_service_time = 0;
+    uint8_t i;
+    bool found = false;
+
+    if (k_msgq_num_used_get(msgq) > 0) {
+        return K_NO_WAIT; // Don't sleep if there are items in the message queue
+    }
+    for (i = 0; i < SCHEDULER_COUNT; i++) {
+        if (scheduler_times[i] > now) {
+            if (!next_service_time) {
+                next_service_time = scheduler_times[i];
+            } else if (scheduler_times[i] < next_service_time) {
+                next_service_time = scheduler_times[i];
+            }
+            found = true;
+        }
+    }
+    if (found) {
+        next_service_time -= now;
+        next_service_time += SCHEDULER_TIME_SLIPPAGE;
+        return K_MSEC(next_service_time);
+    }
+    return K_FOREVER;   // No events scheduled
+}
+
 #endif // ZEPHYR_SLEEP_SCHEDULER_H

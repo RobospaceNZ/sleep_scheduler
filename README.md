@@ -56,6 +56,8 @@ static void your_thread_fn(void) {
 ```
 The semaphore allows other parts of your code to immediately wake up your thread, otherwise it will sleep until the next timeout.
 
+calculate_sleep_time_msgq is similar to calculate_sleep_time but checks if there are items in your message queue. If so, the thread will be kept alive until all message queue items are processed.
+
 ## Import into Zephyr
 
 This code can be cloned as part of the user's code, but can also be cloned into your Zephyr library. The advantage of this is, if it is cloned into Zephyr once, it will be available to all your Zephyr projects.
@@ -75,7 +77,7 @@ Under projects, add:
 ```
     - name: sleep_scheduler
       remote: sleep_scheduler
-      revision: V1.0.3
+      revision: V1.0.4
       path: modules/lib/sleep_scheduler
 ```
 
