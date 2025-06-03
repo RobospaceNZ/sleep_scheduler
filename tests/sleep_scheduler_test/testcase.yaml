@@ -1,0 +1,6 @@
+tests:
+  sleep_scheduler.test:
+    platform_allow: nrf52840dk/nrf52840
+    tags: sleep_scheduler
+    harness: ztest
+    timeout: 300
