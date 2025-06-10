@@ -1,10 +1,9 @@
 #include <zephyr/ztest.h>
+#include <zephyr/kernel.h>
 
 #define SCHEDULER_TEST1_TIMEOUT                 0
 #define SCHEDULER_TEST2_TIMEOUT                 1
 #define SCHEDULER_COUNT                         2       // Number of scheduled events, must be the last one and one more than the last timeout
-#include "sleep_scheduler.h"
-
 #include "sleep_scheduler.h"
 
 ZTEST(sleep_scheduler, test_set_and_clear_timeout)
@@ -15,14 +14,30 @@ ZTEST(sleep_scheduler, test_set_and_clear_timeout)
     zassert_false(is_sleep_scheduler_timeout_active(SCHEDULER_TEST1_TIMEOUT), "Timeout should not be active");
 }
 
-// ZTEST(sleep_scheduler, test_check_timeout)
-// {
-//     set_sleep_scheduler_timeout(1, 2000);
-//     zassert_true(check_sleep_scheduler_timeout(1, true), "Timeout should be active and checked");
-    
-//     clear_sleep_scheduler_timeout(1);
-//     zassert_false(check_sleep_scheduler_timeout(1, true), "Timeout should not be active after clearing");
-// }
+ZTEST(sleep_scheduler, test_check_timeout)
+{
+    set_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, 100);
+    set_sleep_scheduler_timeout(SCHEDULER_TEST2_TIMEOUT, 120);
+    zassert_false(check_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, true), "Timeout 1 should not be expired yet");
+    zassert_false(check_sleep_scheduler_timeout(SCHEDULER_TEST2_TIMEOUT, true), "Timeout 2 should not be expired yet");
+    k_msleep(80);
+    zassert_false(check_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, true), "Timeout 1 should be close to expiring but not yet");
+    zassert_false(check_sleep_scheduler_timeout(SCHEDULER_TEST2_TIMEOUT, true), "Timeout 2 must not be expired yet");
+    k_msleep(30);
+    zassert_true(check_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, true), "Timeout 1 should have expired by now");
+    zassert_false(check_sleep_scheduler_timeout(SCHEDULER_TEST2_TIMEOUT, true), "Timeout 2 should be close to expiring but not yet");
+    k_msleep(20);
+    zassert_true(check_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, true), "Timeout 1 should still be expited");
+    zassert_true(check_sleep_scheduler_timeout(SCHEDULER_TEST2_TIMEOUT, true), "Timeout 2 should have expired by now");
+}
+
+ZTEST(sleep_scheduler, test_timeout_active_check)
+{
+    clear_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT);
+    zassert_false(is_sleep_scheduler_timeout_active(SCHEDULER_TEST1_TIMEOUT), "Timeout should not be active after clearing");
+    zassert_false(check_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, true), "Timeout 1 should not be expired if inactive");
+    zassert_true(check_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, false), "Timeout 1 have expired if not checking if active");
+}
 
 // ZTEST(sleep_scheduler, test_calculate_sleep_time)
 // {
