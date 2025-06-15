@@ -37,39 +37,48 @@ ZTEST(sleep_scheduler, test_timeout_active_check)
     zassert_false(is_sleep_scheduler_timeout_active(SCHEDULER_TEST1_TIMEOUT), "Timeout should not be active after clearing");
     zassert_false(check_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, true), "Timeout 1 should not be expired if inactive");
     zassert_true(check_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, false), "Timeout 1 have expired if not checking if active");
+    set_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, 100);
+    zassert_true(is_sleep_scheduler_timeout_active(SCHEDULER_TEST1_TIMEOUT), "Timeout should be active after setting");
 }
 
-// ZTEST(sleep_scheduler, test_calculate_sleep_time)
-// {
-//     set_sleep_scheduler_timeout(2, 3000);
-//     k_timeout_t sleep_time = calculate_sleep_time();
-    
-//     zassert_true(sleep_time.ticks > 0, "Sleep time should be greater than zero");
-    
-//     clear_sleep_scheduler_timeout(2);
-//     sleep_time = calculate_sleep_time();
-    
-//     zassert_equal(sleep_time.ticks, K_FOREVER.ticks, "Sleep time should be forever after clearing all timeouts");
-// }
+ZTEST(sleep_scheduler, test_calculate_sleep_time)
+{
+    clear_sleep_scheduler_timeout(SCHEDULER_TEST2_TIMEOUT);
+    set_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, 3000);
+    k_timeout_t sleep_time = calculate_sleep_time();
+    uint64_t ms = k_ticks_to_ms_floor64(sleep_time.ticks);
+    zassert_true(ms > 2990, "Sleep time should be greater than 2990");
+    zassert_true(ms < 3010, "Sleep time should be less than 3010");
 
-// ZTEST(sleep_scheduler, test_calculate_sleep_time_msgq)
-// {
-//     struct k_msgq msgq;
-//     k_msgq_init(&msgq, NULL, 0, 0);
+    clear_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT);
+    sleep_time = calculate_sleep_time();
     
-//     set_sleep_scheduler_timeout(3, 4000);
-//     k_timeout_t sleep_time = calculate_sleep_time_msgq(&msgq);
+    zassert_equal(sleep_time.ticks, K_FOREVER.ticks, "Sleep time should be forever after clearing all timeouts");
+}
+
+struct data_item_type {
+    uint32_t field1;
+};
+
+ZTEST(sleep_scheduler, test_calculate_sleep_time_msgq)
+{
+    char test_msgq_buffer[10 * sizeof(struct data_item_type)];
+    struct k_msgq test_msgq;
+
+    k_msgq_init(&test_msgq, test_msgq_buffer, sizeof(struct data_item_type), 10);
     
-//     zassert_true(sleep_time.ticks > 0, "Sleep time should be greater than zero with no messages in queue");
-    
-//     // Simulate a message in the queue
-//     k_msgq_put(&msgq, NULL, K_NO_WAIT);
-//     sleep_time = calculate_sleep_time_msgq(&msgq);
-    
-//     zassert_equal(sleep_time.ticks, K_NO_WAIT.ticks, "Sleep time should be no wait when messages are present");
-    
-//     clear_sleep_scheduler_timeout(3);
-// }
+    set_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, 1000);
+    k_timeout_t sleep_time = calculate_sleep_time_msgq(&test_msgq);
+    uint64_t ms = k_ticks_to_ms_floor64(sleep_time.ticks);
+    zassert_true(ms > 900, "Sleep time should be greater than 900");
+
+    // Simulate a message in the queue
+    struct data_item_type item = { .field1 = 42 };
+    k_msgq_put(&test_msgq, &item, K_NO_WAIT);
+    sleep_time = calculate_sleep_time_msgq(&test_msgq);
+    zassert_true(k_msgq_num_used_get(&test_msgq) > 0, "Message queue should have items");
+    zassert_equal(sleep_time.ticks, K_NO_WAIT.ticks, "Sleep time should be no wait when messages are present");
+}
 
 ZTEST_SUITE(sleep_scheduler, NULL, NULL, NULL, NULL, NULL);
 
