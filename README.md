@@ -11,7 +11,7 @@ The sleep scheduler only consists of an h file, all functions are static. To use
 #include "sleep_scheduler.h"
 ```
 
-set_sleep_scheduler_timeout is used to set a new timeout. For example, to set SCHEDULER_FIRST_TIMEOUT to timeout in 6 second:
+set_sleep_scheduler_timeout is used to set a new timeout. For example, to set SCHEDULER_FIRST_TIMEOUT to timeout in 6 seconds:
 ```
 set_sleep_scheduler_timeout(SCHEDULER_FIRST_TIMEOUT, 6000);
 ```
@@ -35,7 +35,7 @@ if (check_sleep_scheduler_timeout(SCHEDULER_FIRST_TIMEOUT, true)) {
 }
 ```
 
-In the example above, check_sleep_scheduler_timeout has true as it's second argument. This will check if the timeout is zero. If it is zero then it will treat it as disabled and will return false. If you need the timeout to be active, even if it is zero then use:
+In the example above, check_sleep_scheduler_timeout has true as its second argument. This will check if the timeout is zero. If it is zero then it will treat it as disabled and will return false. If you need the timeout to be active, even if it is zero then use:
 ```
 if (check_sleep_scheduler_timeout(SCHEDULER_FIRST_TIMEOUT, false)) {
 ```
@@ -58,6 +58,16 @@ The semaphore allows other parts of your code to immediately wake up your thread
 
 calculate_sleep_time_msgq is similar to calculate_sleep_time but checks if there are items in your message queue. If so, the thread will be kept alive until all message queue items are processed.
 
+SCHEDULER_TIME_SLIPPAGE is added to the sleep time, so the thread wakes up just after the timeout and not just before it. It defaults to 1 ms. To change it, define it before including sleep_scheduler.h.
+
+### Things to be aware of
+
+The timeouts must only be used by the thread that owns them. They are 64 bit values, so reading and writing them is not atomic. If another thread needs to start a timeout, send it a message or give its semaphore instead.
+
+Each file that includes sleep_scheduler.h gets its own timeouts.
+
+calculate_sleep_time only uses timeouts that have not expired yet. A timeout that expires after it was checked, but before calculate_sleep_time is called, is only checked again the next time the thread wakes up. If your loop can block for a long time between checking the timeouts and calculating the sleep time, make sure something else wakes the thread up, for example another timeout that is set again every time it expires.
+
 ## Import into Zephyr
 
 This code can be cloned as part of the user's code, but can also be cloned into your Zephyr library. The advantage of this is, if it is cloned into Zephyr once, it will be available to all your Zephyr projects.
@@ -77,7 +87,7 @@ Under projects, add:
 ```
     - name: sleep_scheduler
       remote: sleep_scheduler
-      revision: V1.0.5
+      revision: V1.0.6
       path: modules/lib/sleep_scheduler
 ```
 

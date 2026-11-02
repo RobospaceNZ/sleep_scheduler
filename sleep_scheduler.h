@@ -1,5 +1,5 @@
 /*
- * sleep_scheduler.c
+ * sleep_scheduler.h
  *
  * Copyright (c) 2025 Hubert Jetschko
  *
@@ -26,24 +26,38 @@
 #ifndef ZEPHYR_SLEEP_SCHEDULER_H
 #define ZEPHYR_SLEEP_SCHEDULER_H
 
+#include <zephyr/kernel.h>
+#include <stdbool.h>
+#include <stdint.h>
+
+#ifndef SCHEDULER_COUNT
+#error "Define SCHEDULER_COUNT before including sleep_scheduler.h"
+#endif
+
+// The timeouts must only be used by one thread. They are 64 bit, reading and writing them is not atomic.
+// A timeout that expires after it was checked, but before the sleep time is calculated, is only checked again the next
+// time the thread wakes up.
+
+#ifndef SCHEDULER_TIME_SLIPPAGE
 #define SCHEDULER_TIME_SLIPPAGE                 1      // ms, make sure it is past the time scheduled to avoid unnecessary wakeups
+#endif
 
 static int64_t scheduler_times[SCHEDULER_COUNT];
 
-inline static void set_sleep_scheduler_timeout(uint32_t index, int64_t timeout) {
+static inline void set_sleep_scheduler_timeout(uint32_t index, int64_t timeout) {
     scheduler_times[index] = k_uptime_get() + timeout;
 }
 
-inline static void clear_sleep_scheduler_timeout(uint32_t index) {
+static inline void clear_sleep_scheduler_timeout(uint32_t index) {
     scheduler_times[index] = 0;
 }
 
-inline static bool is_sleep_scheduler_timeout_active(uint32_t index) {
+static inline bool is_sleep_scheduler_timeout_active(uint32_t index) {
     return scheduler_times[index] != 0;
 }
 
 // check_active == true : return false if scheduler time == 0
-inline static bool check_sleep_scheduler_timeout(uint32_t index, bool check_active) {
+static inline bool check_sleep_scheduler_timeout(uint32_t index, bool check_active) {
     if (check_active) {
         if (scheduler_times[index] && (k_uptime_get() >= scheduler_times[index])) {
             return true;
@@ -56,10 +70,10 @@ inline static bool check_sleep_scheduler_timeout(uint32_t index, bool check_acti
     return false;
 }
 
-inline static k_timeout_t calculate_sleep_time(void) {
+static inline k_timeout_t calculate_sleep_time(void) {
     int64_t now = k_uptime_get();
     int64_t next_service_time = 0;
-    uint8_t i;
+    uint32_t i;
     bool found = false;
 
     for (i = 0; i < SCHEDULER_COUNT; i++) {
@@ -81,31 +95,11 @@ inline static k_timeout_t calculate_sleep_time(void) {
 }
 
 // If there are items in the message queue then don't sleep
-inline static k_timeout_t calculate_sleep_time_msgq(struct k_msgq * msgq) {
-    int64_t now = k_uptime_get();
-    int64_t next_service_time = 0;
-    uint8_t i;
-    bool found = false;
-
+static inline k_timeout_t calculate_sleep_time_msgq(struct k_msgq * msgq) {
     if (k_msgq_num_used_get(msgq) > 0) {
         return K_NO_WAIT; // Don't sleep if there are items in the message queue
     }
-    for (i = 0; i < SCHEDULER_COUNT; i++) {
-        if (scheduler_times[i] > now) {
-            if (!next_service_time) {
-                next_service_time = scheduler_times[i];
-            } else if (scheduler_times[i] < next_service_time) {
-                next_service_time = scheduler_times[i];
-            }
-            found = true;
-        }
-    }
-    if (found) {
-        next_service_time -= now;
-        next_service_time += SCHEDULER_TIME_SLIPPAGE;
-        return K_MSEC(next_service_time);
-    }
-    return K_FOREVER;   // No events scheduled
+    return calculate_sleep_time();
 }
 
 #endif // ZEPHYR_SLEEP_SCHEDULER_H

@@ -27,7 +27,7 @@ ZTEST(sleep_scheduler, test_check_timeout)
     zassert_true(check_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, true), "Timeout 1 should have expired by now");
     zassert_false(check_sleep_scheduler_timeout(SCHEDULER_TEST2_TIMEOUT, true), "Timeout 2 should be close to expiring but not yet");
     k_msleep(20);
-    zassert_true(check_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, true), "Timeout 1 should still be expited");
+    zassert_true(check_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, true), "Timeout 1 should still be expired");
     zassert_true(check_sleep_scheduler_timeout(SCHEDULER_TEST2_TIMEOUT, true), "Timeout 2 should have expired by now");
 }
 
@@ -36,7 +36,7 @@ ZTEST(sleep_scheduler, test_timeout_active_check)
     clear_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT);
     zassert_false(is_sleep_scheduler_timeout_active(SCHEDULER_TEST1_TIMEOUT), "Timeout should not be active after clearing");
     zassert_false(check_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, true), "Timeout 1 should not be expired if inactive");
-    zassert_true(check_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, false), "Timeout 1 have expired if not checking if active");
+    zassert_true(check_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, false), "Timeout 1 should be expired if not checking if active");
     set_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, 100);
     zassert_true(is_sleep_scheduler_timeout_active(SCHEDULER_TEST1_TIMEOUT), "Timeout should be active after setting");
 }
@@ -80,6 +80,49 @@ ZTEST(sleep_scheduler, test_calculate_sleep_time_msgq)
     zassert_equal(sleep_time.ticks, K_NO_WAIT.ticks, "Sleep time should be no wait when messages are present");
 }
 
-ZTEST_SUITE(sleep_scheduler, NULL, NULL, NULL, NULL, NULL);
+ZTEST(sleep_scheduler, test_calculate_sleep_time_earliest)
+{
+    // With more than one timeout set, the earliest one sets the sleep time
+    set_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, 3000);
+    set_sleep_scheduler_timeout(SCHEDULER_TEST2_TIMEOUT, 1000);
+    k_timeout_t sleep_time = calculate_sleep_time();
+    uint64_t ms = k_ticks_to_ms_floor64(sleep_time.ticks);
+    zassert_true(ms > 990, "Sleep time should be greater than 990");
+    zassert_true(ms < 1010, "Sleep time should be less than 1010");
+
+    // The order of the timeouts does not matter
+    set_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, 500);
+    sleep_time = calculate_sleep_time();
+    ms = k_ticks_to_ms_floor64(sleep_time.ticks);
+    zassert_true(ms > 490, "Sleep time should be greater than 490");
+    zassert_true(ms < 510, "Sleep time should be less than 510");
+}
+
+ZTEST(sleep_scheduler, test_calculate_sleep_time_ignores_expired)
+{
+    // A timeout that expired but was not cleared or set again is not used for the sleep time
+    set_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, 10);
+    k_msleep(20);
+    zassert_true(check_sleep_scheduler_timeout(SCHEDULER_TEST1_TIMEOUT, true), "Timeout 1 should have expired");
+    k_timeout_t sleep_time = calculate_sleep_time();
+    zassert_equal(sleep_time.ticks, K_FOREVER.ticks, "An expired timeout should be ignored");
+
+    set_sleep_scheduler_timeout(SCHEDULER_TEST2_TIMEOUT, 1000);
+    sleep_time = calculate_sleep_time();
+    uint64_t ms = k_ticks_to_ms_floor64(sleep_time.ticks);
+    zassert_true(ms > 990, "Sleep time should come from the timeout that has not expired");
+    zassert_true(ms < 1010, "Sleep time should come from the timeout that has not expired");
+}
+
+// Clear all the timeouts before every test, so the tests don't depend on each other
+static void clear_all_timeouts(void *fixture)
+{
+    ARG_UNUSED(fixture);
+    for (uint32_t i = 0; i < SCHEDULER_COUNT; i++) {
+        clear_sleep_scheduler_timeout(i);
+    }
+}
+
+ZTEST_SUITE(sleep_scheduler, NULL, NULL, clear_all_timeouts, NULL, NULL);
 
 
