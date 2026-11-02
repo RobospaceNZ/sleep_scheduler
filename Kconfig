@@ -1,0 +1,11 @@
+#
+# Copyright (c) 2025 Hubert Jetschko
+#
+# SPDX-License-Identifier: MIT
+#
+
+config SLEEP_SCHEDULER
+	bool "Sleep scheduler"
+	help
+	  Header only library that calculates how long a thread can sleep until the next
+	  timeout. Adds sleep_scheduler.h to the include path.

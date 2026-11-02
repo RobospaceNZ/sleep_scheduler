@@ -1,0 +1,4 @@
+name: sleep_scheduler
+build:
+  cmake: .
+  kconfig: Kconfig

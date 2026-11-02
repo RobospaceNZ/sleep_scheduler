@@ -68,39 +68,53 @@ Each file that includes sleep_scheduler.h gets its own timeouts.
 
 calculate_sleep_time only uses timeouts that have not expired yet. A timeout that expires after it was checked, but before calculate_sleep_time is called, is only checked again the next time the thread wakes up. If your loop can block for a long time between checking the timeouts and calculating the sleep time, make sure something else wakes the thread up, for example another timeout that is set again every time it expires.
 
+## Changes in V1.1.0
+
+sleep_scheduler is now a Zephyr module, see [Import into Zephyr](#import-into-zephyr). Enable it with
+`CONFIG_SLEEP_SCHEDULER=y` and remove the `zephyr_include_directories` line from your CMakeLists.txt. There are no
+changes to the code.
+
 ## Import into Zephyr
 
-This code can be cloned as part of the user's code, but can also be cloned into your Zephyr library. The advantage of this is, if it is cloned into Zephyr once, it will be available to all your Zephyr projects.
-
-For the examples below, we are assuming Nordic NCS 2.9.0. Please adjust to your version.
-
-If you are using Nordic's NCS, open west.yml located at:<br>
-C:\ncs\v2.9.0\nrf\west.yml
-
-Under remotes, add:
+sleep_scheduler is a Zephyr module (see zephyr/module.yml), so Zephyr finds it by itself once it is in the west workspace or
+listed in `ZEPHYR_EXTRA_MODULES`. No changes to CMakeLists.txt or Kconfig are needed, enable it in prj.conf:
 ```
-    - name: sleep_scheduler
+CONFIG_SLEEP_SCHEDULER=y
+```
+
+It is header only, `CONFIG_SLEEP_SCHEDULER` adds sleep_scheduler.h to the include path.
+
+### Workspace application
+
+If your application has its own west.yml (a workspace application, for example one started from Nordic's
+ncs-example-application), add the library to that west.yml. Don't edit the west.yml of the SDK (nrf/west.yml), the
+change is lost when the SDK is updated and is not part of your project.
+
+Under remotes, add (once for all Robospace libraries):
+```
+    - name: robospace
       url-base: https://github.com/RobospaceNZ
 ```
 
 Under projects, add:
 ```
     - name: sleep_scheduler
-      remote: sleep_scheduler
-      revision: V1.0.6
+      remote: robospace
+      revision: V1.1.0
       path: modules/lib/sleep_scheduler
 ```
 
-Open command prompt in C:\ncs\v2.9.0. Remember to update b620d30767 if you use a different NCS (See C:\ncs\toolchains\toolchains.json for the version codes). Run the following:
+Then run `west update` in the workspace folder.
+
+### Freestanding application
+
+If your application uses an SDK installed under C:\ncs, add the library to your application, for example as a git
+submodule:
 ```
-SET PATH=C:\ncs\toolchains\b620d30767\opt\bin;C:\ncs\toolchains\b620d30767\opt\bin\Scripts;%PATH%
-west update
+git submodule add https://github.com/RobospaceNZ/sleep_scheduler libs/sleep_scheduler
 ```
 
-The sleep scheduler code will be located at:<br>
-C:\ncs\v2.9.0\modules\lib\sleep_scheduler
-
-Add the following to your CMakeLists.txt file:
+Add the following to your CMakeLists.txt file, before `find_package(Zephyr ...)`:
 ```
-zephyr_include_directories($ENV{ZEPHYR_BASE}/../modules/lib/sleep_scheduler)
+list(APPEND ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/libs/sleep_scheduler)
 ```
